@@ -8,6 +8,9 @@ primary_region = 'fra'
 
 [build]
 
+[experimental]
+  no_http = true
+
 [http_service]
   internal_port = 8080
   force_https = true
@@ -20,6 +23,3 @@ primary_region = 'fra'
   memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
-  W
-[experimental]
-  no_http = true
