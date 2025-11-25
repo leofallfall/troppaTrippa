@@ -4,7 +4,7 @@ import requests
 import telegram
 
 TOKEN = os.environ.get("BOT_TOKEN")
-CHAT_ID = os.environ.get("CHAT_ID")
+CHAT_ID = int(os.environ.get("CHAT_ID"))
 
 bot = telegram.Bot(token=TOKEN)
 
