@@ -28,6 +28,7 @@ def check_availability():
         bot.send_message(chat_id=CHAT_ID, text=f"🎉 Tavolo trovato!\n\n{available}")
     else:
         print("Nessun tavolo trovato.")
+        bot.send_message(chat_id=CHAT_ID, text=f"🎉 Tavolo trovato!\n\n{available}")
 
 def loop():
     while True:
