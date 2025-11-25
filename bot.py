@@ -13,7 +13,7 @@ def check_availability():
     payload = {
         "DateFrom": "2025-10-20T00:00:00",
         "DateTo": "2025-12-12T00:00:00",
-        "PartySize": 6,
+        "PartySize": 2,
         "ChannelCode": "ONLINE",
         "AreaId": None,
         "PromotionId": None
