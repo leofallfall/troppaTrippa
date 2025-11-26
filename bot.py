@@ -103,11 +103,11 @@ async def loop():
             await check_availability()
             await asyncio.sleep(300)  # ogni 5 minuti
 
-# Setup bot con handler /start
 if __name__ == "__main__":
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
 
-    # Avvia il loop in background
-    asyncio.create_task(loop())
+    # Qui è la magia: crea il task DOPO l'avvio del loop interno
+    app.post_init = lambda app: app.create_task(loop())
+
     app.run_polling()
