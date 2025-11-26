@@ -51,10 +51,6 @@ async def check_availability():
             last_heartbeat = now
             print("Messaggio di heartbeat inviato.")
         else:
-            await bot.send_message(
-            chat_id=CHAT_ID,
-            text=f"🎉 Nessun tavolo trovato"
-        )
             print("Nessun tavolo trovato, nessun messaggio inviato.")
 
 async def loop():
