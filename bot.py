@@ -31,10 +31,6 @@ async def check_availability():
         )
         print("Messaggio inviato!")
     else:
-        await bot.send_message(
-            chat_id=CHAT_ID,
-            text=f"🎉 Tavolo trovato!\n\n{available}"
-        )
         print("Nessun tavolo trovato.")
 
 async def loop():
