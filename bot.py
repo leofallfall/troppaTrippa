@@ -95,7 +95,7 @@ async def check_availability():
         last_heartbeat = now
     else:
         # heartbeat ogni ora
-        if now - last_heartbeat > timedelta(hours=1):
+        #if now - last_heartbeat > timedelta(hours=1):
             await send_all("✅ Bot attivo, nessun tavolo disponibile.")
             last_heartbeat = now
             print("Heartbeat inviato.")
