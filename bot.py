@@ -51,12 +51,34 @@ async def check_availability():
             last_heartbeat = now
             print("Messaggio di heartbeat inviato.")
         else:
+            await bot.send_message(
+            chat_id=CHAT_ID,
+            text=f"🎉 Nessun tavolo trovato"
+        )
             print("Nessun tavolo trovato, nessun messaggio inviato.")
 
 async def loop():
+    global sleeping
     while True:
-        await check_availability()
-        await asyncio.sleep(300)  # ogni 5 minuti
+        now = datetime.now()
+        if 0 <= now.hour < 8:
+            if not sleeping:
+                # Messaggio di disattivazione
+                await bot.send_message(chat_id=CHAT_ID, text="💤 Bot in modalità sleep fino alle 8:00.")
+                print("Bot in sleep...")
+                sleeping = True
+
+            # Dorme fino alle 8 del mattino
+            sleep_seconds = (8 - now.hour) * 3600 - now.minute * 60 - now.second
+            await asyncio.sleep(sleep_seconds)
+
+            # Messaggio di attivazione
+            await bot.send_message(chat_id=CHAT_ID, text="🔔 Buongiorno! Bot riattivato.")
+            print("Bot riattivato.")
+            sleeping = False
+        else:
+            await check_availability()
+            await asyncio.sleep(300)  # ogni 5 minuti
 
 if __name__ == "__main__":
     asyncio.run(loop())
