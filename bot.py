@@ -2,15 +2,11 @@ import os
 import asyncio
 import requests
 from datetime import datetime, timedelta
-import nest_asyncio  # <--- IMPORT NECESSARIO
 
 from telegram import Bot, Update
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, ContextTypes
 )
-
-# Permette di creare task dentro un loop già in esecuzione
-nest_asyncio.apply()
 
 # --- ENV ---
 TOKEN = os.environ["BOT_TOKEN"]
@@ -169,10 +165,12 @@ async def main():
     app.add_handler(CommandHandler("sleep", cmd_sleep))
     app.add_handler(CommandHandler("wake", cmd_wake))
 
-    # Avvia polling Telegram
-    asyncio.create_task(app.run_polling())
+    # Avvio polling Telegram **come coroutine** senza nest_asyncio
+    await app.initialize()
+    await app.start()
+    asyncio.create_task(app.updater.start_polling())  # polling in background
 
-    # Check iniziale se non in sleep
+    # Check iniziale
     hour = datetime.now().hour
     if not (0 <= hour < 8):
         print("Eseguo check immediato all’avvio...")
@@ -180,7 +178,7 @@ async def main():
     else:
         print("Avvio in sleep, nessun check iniziale")
 
-    # Avvia loop principale
+    # Loop principale
     await loop_main()
 
 if __name__ == "__main__":
