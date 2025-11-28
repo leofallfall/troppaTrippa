@@ -5,17 +5,14 @@ from telegram import Bot
 from datetime import datetime, timedelta
 
 TOKEN = os.environ["BOT_TOKEN"]
-# Lista di chat ID separati da virgola nell'env variable CHAT_IDS
 CHAT_IDS = [int(cid) for cid in os.environ["CHAT_IDS"].split(",")]
 
 bot = Bot(token=TOKEN)
 
-# Per tracciare l'ultimo messaggio di "heartbeat"
-last_heartbeat = datetime.min
 sleeping = False
+last_log = datetime.min  # per heartbeat log ogni 30 minuti
 
 async def send_all(text: str):
-    """Invia un messaggio a tutte le chat registrate"""
     for chat_id in CHAT_IDS:
         try:
             await bot.send_message(chat_id=chat_id, text=text)
@@ -23,7 +20,6 @@ async def send_all(text: str):
             print(f"Errore con chat {chat_id}: {e}")
 
 async def check_availability():
-    global last_heartbeat
     url = "https://booking.resdiary.com/api/Restaurant/TRATTORIATRIPPA/AvailabilityForDateRange"
     payload = {
         "DateFrom": "2025-10-20T00:00:00",
@@ -33,8 +29,6 @@ async def check_availability():
         "AreaId": None,
         "PromotionId": None
     }
-
-    now = datetime.now()
 
     try:
         r = requests.post(url, json=payload)
@@ -49,39 +43,39 @@ async def check_availability():
 
     if available:
         await send_all(f"🎉 Tavolo trovato!\n\n{available}")
-        print("Messaggio inviato: tavolo trovato!")
-        last_heartbeat = now
+        print("Tavolo trovato e notificato!")
     else:
-        # Invia un messaggio di "heartbeat" una volta all'ora
-        if now - last_heartbeat > timedelta(hours=1):
-            await send_all("✅ Bot attivo, nessun tavolo disponibile.")
-            last_heartbeat = now
-            print("Messaggio di heartbeat inviato.")
-        else:
-            print("Nessun tavolo trovato, nessun messaggio inviato.")
+        print("Check ok, nessun tavolo – nessun messaggio inviato.")
 
 async def loop():
-    global sleeping
+    global sleeping, last_log
+
     while True:
         now = datetime.now()
+
+        # 💤 MODALITÀ NOTTE 00:00–08:00
         if 0 <= now.hour < 8:
             if not sleeping:
-                # Messaggio di disattivazione
                 await send_all("💤 Bot in modalità sleep fino alle 8:00.")
                 print("Bot in sleep...")
                 sleeping = True
 
-            # Dorme fino alle 8 del mattino
-            sleep_seconds = (8 - now.hour) * 3600 - now.minute * 60 - now.second
-            await asyncio.sleep(sleep_seconds)
+            # Log ogni 30 minuti per evitare sleep su Railway
+            if now - last_log > timedelta(minutes=30):
+                print(f"[{now}] Heartbeat notturno: bot vivo.")
+                last_log = now
 
-            # Messaggio di attivazione
+            await asyncio.sleep(60)  # controlla ogni minuto il passaggio delle 8
+            continue
+
+        # ☀️ MODALITÀ GIORNO
+        if sleeping:
             await send_all("🔔 Buongiorno! Bot riattivato.")
             print("Bot riattivato.")
             sleeping = False
-        else:
-            await check_availability()
-            await asyncio.sleep(300)  # ogni 5 minuti
+
+        await check_availability()
+        await asyncio.sleep(300)  # controlla ogni 5 minuti
 
 if __name__ == "__main__":
     asyncio.run(loop())
