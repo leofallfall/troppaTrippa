@@ -171,6 +171,6 @@ if __name__ == "__main__":
 
     # Avvio polling Telegram in background
     asyncio.get_event_loop().create_task(app.run_polling())
-
+    asyncio.get_event_loop().create_task(check_availability())
     # Avvio il tuo loop principale
     asyncio.run(loop())
