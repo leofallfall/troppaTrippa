@@ -137,11 +137,9 @@ async def loop():
 
         # Se sleep, non fare controlli
         if sleeping:
-            # heartbeat log notturno ogni 30 minuti
             print(f"[{now.strftime('%H:%M:%S')}] Sleep heartbeat")
             await asyncio.sleep(1800)
 
-            # Riattivazione automatica alle 8
             if now.hour >= 8:
                 sleeping = False
                 await send_all("🔔 Buongiorno! Bot riattivato.")
@@ -150,15 +148,13 @@ async def loop():
 
         # Controllo normale
         await check_availability()
-
-        # Attesa 5 min
         await asyncio.sleep(300)
 
 # ============================================================
-# 📌 ENTRYPOINT
+# 📌 ENTRYPOINT CORRETTO
 # ============================================================
 
-if __name__ == "__main__":
+async def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("ping", cmd_ping))
@@ -169,8 +165,19 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("sleep", cmd_sleep))
     app.add_handler(CommandHandler("wake", cmd_wake))
 
-    # Avvio polling Telegram in background
-    asyncio.get_event_loop().create_task(app.run_polling())
-    asyncio.get_event_loop().create_task(check_availability())
-    # Avvio il tuo loop principale
-    asyncio.run(loop())
+    # Avvia polling Telegram
+    asyncio.create_task(app.run_polling())
+
+    # Esegui check immediato (se non è notte)
+    hour = datetime.now().hour
+    if not (0 <= hour < 8):
+        print("Eseguo check immediato all’avvio...")
+        await check_availability()
+    else:
+        print("Avvio in sleep, nessun check iniziale")
+
+    # Avvia il loop principale
+    await loop()
+
+if __name__ == "__main__":
+    asyncio.run(main())
