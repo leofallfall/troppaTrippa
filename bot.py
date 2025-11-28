@@ -2,12 +2,10 @@ import os
 import asyncio
 import requests
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo  # <--- gestione fuso orario
+from zoneinfo import ZoneInfo  # Python 3.9+ per fuso orario
 
 from telegram import Bot, Update
-from telegram.ext import (
-    ApplicationBuilder, CommandHandler, ContextTypes
-)
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 # --- ENV ---
 TOKEN = os.environ["BOT_TOKEN"]
@@ -16,9 +14,9 @@ CHAT_IDS = [int(cid) for cid in os.environ["CHAT_IDS"].split(",")]
 bot = Bot(token=TOKEN)
 
 # --- STATUS VARIABLES ---
-last_heartbeat = datetime.min.replace(tzinfo=ZoneInfo("Europe/Rome"))
+last_heartbeat = datetime.min
 last_found = None
-bot_start_time = datetime.now(ZoneInfo("Europe/Rome"))
+bot_start_time = datetime.now(tz=ZoneInfo("Europe/Rome"))
 next_check_eta = "N/D"
 sleeping = False
 
@@ -32,10 +30,6 @@ async def send_all(text: str):
             await bot.send_message(chat_id=chat_id, text=text)
         except Exception as e:
             print(f"Errore con chat {chat_id}: {e}")
-
-def now():
-    """Ora corrente in Europa/Roma"""
-    return datetime.now(ZoneInfo("Europe/Rome"))
 
 # ============================================================
 # 📌 COMMAND HANDLERS
@@ -68,7 +62,7 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_markdown(text)
 
 async def cmd_uptime(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    delta = now() - bot_start_time
+    delta = datetime.now(tz=ZoneInfo("Europe/Rome")) - bot_start_time
     await update.message.reply_text(f"⏱️ Uptime: {delta}")
 
 async def cmd_nextcheck(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -101,7 +95,7 @@ async def check_availability():
         "PromotionId": None
     }
 
-    now_time = now()
+    now = datetime.now(tz=ZoneInfo("Europe/Rome"))
 
     try:
         r = requests.post(url, json=payload)
@@ -112,17 +106,17 @@ async def check_availability():
         return
 
     available = data.get("AvailableDates", [])
-    last_heartbeat = now_time
-    next_check_eta = now_time + timedelta(minutes=5)
+    last_heartbeat = now
+    next_check_eta = now + timedelta(minutes=5)
 
     if available:
-        last_found = now_time
+        last_found = now
         await send_all(f"🎉 *Tavolo trovato!*\n\n{available}")
         print("Messaggio inviato: tavolo trovato!")
         return
 
     # Heartbeat SOLO nei log
-    print(f"[{now_time.strftime('%H:%M:%S')}] Heartbeat OK – nessuna disponibilità")
+    print(f"[{now.strftime('%H:%M:%S')}] Heartbeat OK – nessuna disponibilità")
 
 # ============================================================
 # 📌 MAIN LOOP
@@ -130,22 +124,23 @@ async def check_availability():
 
 async def loop():
     global sleeping, next_check_eta
+    tz = ZoneInfo("Europe/Rome")
 
     while True:
-        now_time = now()
+        now = datetime.now(tz=tz)
 
         # Modalità sleep automatica
-        if 0 <= now_time.hour < 8 and not sleeping:
+        if 0 <= now.hour < 8 and not sleeping:
             sleeping = True
             await send_all("💤 Bot in modalità sleep fino alle 8:00.")
             print("Bot in sleep...")
 
-        # Se sleep, non fare controlli
         if sleeping:
-            print(f"[{now_time.strftime('%H:%M:%S')}] Sleep heartbeat")
+            print(f"[{now.strftime('%H:%M:%S')}] Sleep heartbeat")
             await asyncio.sleep(1800)  # heartbeat notturno
 
-            if now_time.hour >= 8:
+            # Riattivazione automatica alle 8
+            if now.hour >= 8:
                 sleeping = False
                 await send_all("🔔 Buongiorno! Bot riattivato.")
                 print("Bot riattivato.")
@@ -156,12 +151,13 @@ async def loop():
         await asyncio.sleep(300)
 
 # ============================================================
-# 📌 ENTRYPOINT CORRETTO
+# 📌 ENTRYPOINT
 # ============================================================
 
 async def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
+    # Command handlers
     app.add_handler(CommandHandler("ping", cmd_ping))
     app.add_handler(CommandHandler("help", cmd_help))
     app.add_handler(CommandHandler("status", cmd_status))
@@ -173,16 +169,22 @@ async def main():
     # Avvia polling Telegram
     asyncio.create_task(app.run_polling())
 
-    # Esegui check immediato (se non è notte)
-    hour = now().hour
-    if not (0 <= hour < 8):
+    # Esegui check iniziale se non è notte
+    now = datetime.now(tz=ZoneInfo("Europe/Rome"))
+    if not (0 <= now.hour < 8):
         print("Eseguo check immediato all’avvio...")
         await check_availability()
     else:
         print("Avvio in sleep, nessun check iniziale")
 
-    # Avvia il loop principale
+    # Avvia loop principale
     await loop()
 
+# ============================================================
+# 🔹 Avvio su Railway / ambienti con loop già attivo
+# ============================================================
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    loop = asyncio.get_event_loop()
+    loop.create_task(main())
+    loop.run_forever()
