@@ -2,7 +2,7 @@ import os
 import asyncio
 import requests
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo  # Python 3.9+ per fuso orario
+from zoneinfo import ZoneInfo
 
 from telegram import Bot, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
@@ -20,10 +20,7 @@ bot_start_time = datetime.now(tz=ZoneInfo("Europe/Rome"))
 next_check_eta = "N/D"
 sleeping = False
 
-# ============================================================
-# 📌 FUNZIONI UTILI
-# ============================================================
-
+# --- UTILITY FUNCTIONS ---
 async def send_all(text: str):
     for chat_id in CHAT_IDS:
         try:
@@ -31,10 +28,7 @@ async def send_all(text: str):
         except Exception as e:
             print(f"Errore con chat {chat_id}: {e}")
 
-# ============================================================
-# 📌 COMMAND HANDLERS
-# ============================================================
-
+# --- COMMAND HANDLERS ---
 async def cmd_ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🏓 Sono attivo!")
 
@@ -78,10 +72,7 @@ async def cmd_wake(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sleeping = False
     await update.message.reply_text("🔔 Bot riattivato manualmente!")
 
-# ============================================================
-# 📌 CORE LOGIC: CHECK DISPONIBILITÀ
-# ============================================================
-
+# --- CORE CHECK ---
 async def check_availability():
     global last_heartbeat, last_found, next_check_eta
 
@@ -115,13 +106,9 @@ async def check_availability():
         print("Messaggio inviato: tavolo trovato!")
         return
 
-    # Heartbeat SOLO nei log
     print(f"[{now.strftime('%H:%M:%S')}] Heartbeat OK – nessuna disponibilità")
 
-# ============================================================
-# 📌 MAIN LOOP
-# ============================================================
-
+# --- MAIN LOOP ---
 async def loop():
     global sleeping, next_check_eta
     tz = ZoneInfo("Europe/Rome")
@@ -129,7 +116,7 @@ async def loop():
     while True:
         now = datetime.now(tz=tz)
 
-        # Modalità sleep automatica
+        # Sleep automatico
         if 0 <= now.hour < 8 and not sleeping:
             sleeping = True
             await send_all("💤 Bot in modalità sleep fino alle 8:00.")
@@ -137,27 +124,21 @@ async def loop():
 
         if sleeping:
             print(f"[{now.strftime('%H:%M:%S')}] Sleep heartbeat")
-            await asyncio.sleep(1800)  # heartbeat notturno
-
-            # Riattivazione automatica alle 8
+            await asyncio.sleep(1800)
             if now.hour >= 8:
                 sleeping = False
                 await send_all("🔔 Buongiorno! Bot riattivato.")
                 print("Bot riattivato.")
             continue
 
-        # Controllo normale
         await check_availability()
         await asyncio.sleep(300)
 
-# ============================================================
-# 📌 ENTRYPOINT
-# ============================================================
-
+# --- ENTRYPOINT ---
 async def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
-    # Command handlers
+    # Handlers
     app.add_handler(CommandHandler("ping", cmd_ping))
     app.add_handler(CommandHandler("help", cmd_help))
     app.add_handler(CommandHandler("status", cmd_status))
@@ -167,24 +148,19 @@ async def main():
     app.add_handler(CommandHandler("wake", cmd_wake))
 
     # Avvia polling Telegram
-    asyncio.create_task(app.run_polling())
+    await app.initialize()
+    await app.start()
+    asyncio.create_task(app.updater.start_polling())
 
-    # Esegui check iniziale se non è notte
+    # Check iniziale
     now = datetime.now(tz=ZoneInfo("Europe/Rome"))
     if not (0 <= now.hour < 8):
-        print("Eseguo check immediato all’avvio...")
+        print("Eseguo check iniziale...")
         await check_availability()
-    else:
-        print("Avvio in sleep, nessun check iniziale")
 
-    # Avvia loop principale
+    # Loop principale
     await loop()
 
-# ============================================================
-# 🔹 Avvio su Railway / ambienti con loop già attivo
-# ============================================================
-
+# --- RUN ---
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.create_task(main())
-    loop.run_forever()
+    asyncio.run(main())
