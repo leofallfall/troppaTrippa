@@ -62,6 +62,41 @@ async def cmd_uptime(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_nextcheck(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"🔍 Prossimo check: {next_check_eta}")
 
+async def manual_check():
+    url = "https://booking.resdiary.com/api/Restaurant/TRATTORIATRIPPA/AvailabilityForDateRange"
+    payload = {
+        "DateFrom": "2025-10-20T00:00:00",
+        "DateTo": "2025-12-12T00:00:00",
+        "PartySize": 2,
+        "ChannelCode": "ONLINE",
+        "AreaId": None,
+        "PromotionId": None
+    }
+
+    try:
+        r = requests.post(url, json=payload)
+        r.raise_for_status()
+        data = r.json()
+    except Exception as e:
+        print("Errore durante manual_check:", e)
+        return None
+
+    available = data.get("AvailableDates", [])
+    return available if available else None
+
+async def cmd_checknow(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🔍 Controllo in corso…")
+
+    result = await manual_check()
+
+    if result:
+        await update.message.reply_text(
+            f"🎉 *Disponibilità trovata!*\n\n{result}",
+            parse_mode="Markdown"
+        )
+    else:
+        await update.message.reply_text("❌ Nessuna disponibilità al momento.")
+
 async def cmd_sleep(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global sleeping
     sleeping = True
@@ -146,6 +181,8 @@ async def main():
     app.add_handler(CommandHandler("nextcheck", cmd_nextcheck))
     app.add_handler(CommandHandler("sleep", cmd_sleep))
     app.add_handler(CommandHandler("wake", cmd_wake))
+    app.add_handler(CommandHandler("checknow", cmd_checknow))
+
 
     # Avvia polling Telegram
     await app.initialize()
