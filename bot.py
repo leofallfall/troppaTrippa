@@ -35,6 +35,7 @@ async def cmd_ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_text = (
         "📖 *Comandi Disponibili*\n\n"
+        "/checknow - Testa disponibilità ora"
         "/ping – Testa se il bot è online\n"
         "/status – Stato attuale del bot\n"
         "/nextcheck – Quando sarà il prossimo controllo\n"
