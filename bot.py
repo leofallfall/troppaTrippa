@@ -110,6 +110,12 @@ async def manual_check():
     available = data.get("AvailableDates", [])
     return available if available else None
 
+async def debug_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    user = update.effective_user
+    print(f"CHAT_ID={chat_id} USER={user.username}")
+    await update.message.reply_text(f"👋 Chat ID: `{chat_id}`", parse_mode="Markdown")
+
 async def cmd_checknow(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🔍 Controllo in corso…")
 
@@ -209,6 +215,8 @@ async def main():
     app.add_handler(CommandHandler("sleep", cmd_sleep))
     app.add_handler(CommandHandler("wake", cmd_wake))
     app.add_handler(CommandHandler("checknow", cmd_checknow))
+    app.add_handler(CommandHandler("start", debug_chat))
+
 
 
     # Avvia polling Telegram
