@@ -19,7 +19,8 @@ last_found = None
 bot_start_time = datetime.now(tz=ZoneInfo("Europe/Rome"))
 next_check_eta = "N/D"
 sleeping = False
-async def current_and_next_month_range():
+
+def current_and_next_month_range():
     tz = ZoneInfo("Europe/Rome")
     now = datetime.now(tz)
 
@@ -135,11 +136,12 @@ async def cmd_wake(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- CORE CHECK ---
 async def check_availability():
     global last_heartbeat, last_found, next_check_eta
+    start, end = current_and_next_month_range()
 
     url = "https://booking.resdiary.com/api/Restaurant/TRATTORIATRIPPA/AvailabilityForDateRange"
     payload = {
-        "DateFrom": "2025-10-20T00:00:00",
-        "DateTo": "2025-12-12T00:00:00",
+        "DateFrom": start.strftime("%Y-%m-%dT00:00:00"),
+        "DateTo": end.strftime("%Y-%m-%dT23:59:59"),
         "PartySize": 2,
         "ChannelCode": "ONLINE",
         "AreaId": None,
