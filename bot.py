@@ -19,7 +19,29 @@ last_found = None
 bot_start_time = datetime.now(tz=ZoneInfo("Europe/Rome"))
 next_check_eta = "N/D"
 sleeping = False
+async def current_and_next_month_range():
+    tz = ZoneInfo("Europe/Rome")
+    now = datetime.now(tz)
 
+    # primo giorno del mese corrente
+    start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    # primo giorno del mese prossimo
+    if start.month == 12:
+        first_next = start.replace(year=start.year + 1, month=1)
+    else:
+        first_next = start.replace(month=start.month + 1)
+
+    # primo giorno del mese dopo il prossimo
+    if first_next.month == 12:
+        first_after_next = first_next.replace(year=first_next.year + 1, month=1)
+    else:
+        first_after_next = first_next.replace(month=first_next.month + 1)
+
+    # ultimo giorno del mese prossimo (fine giornata)
+    end = first_after_next - timedelta(seconds=1)
+
+    return start, end
 # --- UTILITY FUNCTIONS ---
 async def send_all(text: str):
     for chat_id in CHAT_IDS:
@@ -64,10 +86,12 @@ async def cmd_nextcheck(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"🔍 Prossimo check: {next_check_eta}")
 
 async def manual_check():
+    start, end = current_and_next_month_range()
+
     url = "https://booking.resdiary.com/api/Restaurant/TRATTORIATRIPPA/AvailabilityForDateRange"
     payload = {
-        "DateFrom": "2025-10-20T00:00:00",
-        "DateTo": "2025-12-12T00:00:00",
+        "DateFrom": start.strftime("%Y-%m-%dT00:00:00"),
+        "DateTo": end.strftime("%Y-%m-%dT23:59:59"),
         "PartySize": 2,
         "ChannelCode": "ONLINE",
         "AreaId": None,
