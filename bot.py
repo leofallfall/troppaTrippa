@@ -166,7 +166,7 @@ async def check_availability():
 
     available = data.get("AvailableDates", [])
     last_heartbeat = now
-    next_check_eta = now + timedelta(minutes=5)
+    next_check_eta = now + timedelta(minutes=3)
 
     if available:
         last_found = now
